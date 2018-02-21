@@ -45,7 +45,7 @@ class BNAPipeline(object):
             
             article_item = ArticleItem(title, description, hint, publish, newspaper, county, type_, word, page, tag)
         
-            with open("Records/record.json","a") as f:
+            with open("Crawler/Records/BNA.json","a") as f:
                 json.dump(article_item.__dict__ ,f)
                 f.write(',\n')
         # for x in article_items:
