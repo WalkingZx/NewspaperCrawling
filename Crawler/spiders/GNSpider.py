@@ -13,6 +13,7 @@ sys.setdefaultencoding('utf-8')
 
 class GNSpider(Spider):
     name = "GN"
+    SEACH_KEY_WORD = '"Election Riot"'
 
     headers = {
     "Accept"            :"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -30,7 +31,6 @@ class GNSpider(Spider):
             j = i.strip()
             j = j.split('=')
             cookie[j[0]] = j[1]
-            print cookie
         return cookie
 
     def generator_search_dataItem(self, data):
@@ -130,33 +130,68 @@ class GNSpider(Spider):
         &ALTERNATE_TAB=&userGroupISBN=&method=doSearch&allLimiters='
         cookie = self.generator_cookie(cookie)
         data = self.generator_search_dataItem(data)
-        data['inputFieldValue(0)'] = 'Election Riot'
+        data['inputFieldValue(0)'] = self.SEACH_KEY_WORD
         return [FormRequest(
                             url = url,
                             cookies = cookie,
                             headers = self.headers,
                             formdata = data,
-                            callback = self.parse)]
-
-        
+                            callback = self.parse)]   
 
     def parse(self, response):
         # filename = 'search.html'
         # with open(filename, 'w') as f:
         #     f.write(response.body)
+        cookie = response.request.headers.getlist('Cookie')
         data = response.body
         soup = BeautifulSoup(data, 'html.parser', from_encoding='utf-8')
         page = PageItem()
         page['titles'] = []
-        page['hints'] = []
-        page['descriptions'] = []
         page['publishs'] = []
         page['counties'] = []
-        page['types'] = []
         page['words'] = []
-        page['pages'] = []
-        page['tags'] = []
         page['newspapers'] = []
+        page['download_pages'] = []
 
-        titles = soup.find_all('li', class_ = 'resultInfo')
-        print titles[0].p.b.a.spcitation.get_text()
+        all_articles = soup.find_all('li', class_ = 'resultInfo')
+        for article in all_articles:
+            page['titles'].append(article.p.b.a.spcitation.get_text())
+            newspaper, county, text = article.find('span', class_ = 'txt_Detail').stripped_strings
+            page['counties'].append(county)
+            page['newspapers'].append(newspaper)
+            text_info = re.match(r'(.*)\((\d+).*\).*', text)
+            if text_info!=None:
+                page['publishs'].append(text_info.group(1))
+                page['words'].append(text_info.group(2))
+            else:
+                page['publishs'].append('')
+                page['words'].append('')
+            download_page = response.urljoin(article.p.b.a.get('href'))
+            page['download_pages'].append(download_page)
+
+        yield page
+
+        next_page = soup.find('a', attrs = {'title' : 'Next'})
+
+        if next_page is not None:
+            next_page = next_page.get('href')
+            next_page_full_url = response.urljoin(next_page)
+            yield scrapy.Request(next_page_full_url, callback=self.parse, headers=self.headers)
+            # downlad = self.parse_downloadPage(url = download_page, cookies = cookie)
+
+    # def parse_downloadPage(self, url, cookies):
+    #     headers = self.headers
+    #     cookies= self.generator_cookie(cookies)
+    #     response = requests.get(url, headers = headers, cookies = cookies)
+    #     filename = 'download.html'
+    #     with open(filename, 'w') as f:
+    #         f.write(response.text)
+
+
+
+
+
+
+
+
+

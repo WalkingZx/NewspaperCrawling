@@ -1,0 +1,349 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<!-- Page buffer in include -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+<!--
+-->
+
+
+  
+
+
+
+  
+
+
+
+  
+
+  
+  
+
+
+
+
+
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <title>Gale NewsVault Fascimile Download Formats</title>
+<link rel="SHORTCUT ICON" href="images/favicon.ico" />
+
+
+    <link href="style/popin.css" type="text/css" rel="stylesheet" />
+    <script language=JavaScript src="javascript/pdf.js"></script>
+    <script language="JavaScript" type="text/javascript">
+    var PAGE_RANGE_ERR = "???Download.pageRangeError???";
+    var INVALID_CHARS = "???Download.InvalidCharacters???";
+    var EXCEEDS_MAX_PAGES ="???Download.ExceedsMaxPages???";
+    var TOTAL_NO_OF_PAGES = 1;
+    var INVALID_PAGE_RANGE = "Invalid Page Range.";
+
+    function constructURLandSubmit(){
+        var printUrl = "downloadDocument.do?scale=&orientation=&sort=DateAscend&docType=&docLevel=FASCIMILE&prodId=DVNW&tabID=T003&resultListType=RESULT_LIST&searchId=R1&callistoContentSet=UDVIN&currentPosition=1&pageIndex=1&relatedDocId=&retrieveFormat=MULTIPAGE_DOCUMENT&isIllustration=false&noOfPages=1&imageId=&inPS=true&userGroupName=duruni&docId=BA3207141057&contentSet=LTO";
+        for(var i=0;i<document.forms[0].printFascimileFormat.length;i++){
+            var formatOption=document.forms[0].printFascimileFormat[i];
+
+            if(document.forms[0].reformatPage.value == 'Y'){
+                printUrl = printUrl + "&reformatPage=" + document.forms[0].reformatPage.value;
+            }
+
+            if(formatOption.checked && formatOption.value== "HTML"){
+                printUrl = printUrl + "&aCmnd=HTMLFormat";
+                break;
+            }else if(formatOption.checked && formatOption.value== "PDF") {
+                printUrl= printUrl + "&aCmnd=PDFFormat";
+                break;
+            }else if(formatOption.checked && formatOption.value== "PDFEntire") {
+                printUrl = printUrl + "&aCmnd=PDFFormat&pageRange=1-" + TOTAL_NO_OF_PAGES;
+                break;
+            }else if(formatOption.checked && formatOption.value== "PDFLandScape") {
+                printUrl= printUrl + "&aCmnd=PDFLandScape&pageRange=1-" + TOTAL_NO_OF_PAGES;                 
+                break;
+            }else if(formatOption.checked && formatOption.value== "PDF3Article") {
+                printUrl= printUrl + "&aCmnd=PDFFormat3&pageRange=1-" + TOTAL_NO_OF_PAGES;
+                break;
+            }else if(formatOption.checked && formatOption.value== "PDF4Article") {
+                printUrl= printUrl + "&aCmnd=PDFFormat4&pageRange=1-" + TOTAL_NO_OF_PAGES;;
+                break;
+            }else if(formatOption.checked && formatOption.value== "PDFPageLandScape") {
+                printUrl= printUrl + "&aCmnd=PDFLandScape";
+                break;
+            }else if(formatOption.checked && formatOption.value== "PDF2") {
+                printUrl= printUrl + "&aCmnd=PDFFormat2";
+                break;
+            }else if(formatOption.checked && formatOption.value== "PDF4") {
+                printUrl= printUrl + "&aCmnd=PDFFormat4";
+                break;
+            }else if((formatOption.checked && formatOption.value== "PDFRange")){
+                var valid = validatePageRange("pageRange");
+                if(valid==false){
+                    return;
+                }
+                var pageRange= document.forms[0].pageRange.value;
+                printUrl = printUrl + "&aCmnd=PDFFormat&pageRange=" + pageRange;
+                break;
+            }
+            printUrl = printUrl + "&pageIndex="+document.frmPrintFascimileFormat.pageIndex.value;
+            printUrl = printUrl + "&mcode="+document.frmPrintFascimileFormat.mcode.value;
+            printUrl = printUrl + "&issueNum="+document.frmPrintFascimileFormat.issueNum.value;             
+        }
+        printUrl = printUrl + "&recNum="+document.frmPrintFascimileFormat.recNum.value;
+        printUrl = printUrl + "&qrySerId="+document.frmPrintFascimileFormat.qrySerId.value;             
+        printUrl = printUrl + "&docPage="+document.frmPrintFascimileFormat.docPage.value;
+        if(document.frmPrintFascimileFormat.enlarge.value != "") {
+            printUrl = printUrl + "&enlarge="+document.frmPrintFascimileFormat.enlarge.value;
+        }
+        var cropValue = "";        
+        var searchURL = location.search.toString();
+        var querysplit = searchURL.split('&');
+        for(var j = 0; j < querysplit.length; j++){
+            var splits = querysplit[j].split('=');
+            if(splits[0] == "crop"){                
+                cropValue = splits[1];     
+            }
+        }
+        printUrl = printUrl + "&crop="+cropValue;
+        this.location.href = printUrl;
+    }
+    
+    function isValidPageRange(idPrefix) {
+        var startObj = getReturnedObj(idPrefix);
+        var endId = startObj.value.split("-")[1];
+        var startId = startObj.value.split("-")[0];
+        if(isNaN(TOTAL_NO_OF_PAGES) || isNaN(parseInt(startId)) || (parseInt(startId) < 1 || parseInt(startId) > parseInt(TOTAL_NO_OF_PAGES))) {
+                alert(INVALID_PAGE_RANGE);
+                startObj.focus();
+                return false;
+            }
+        if(isNaN(parseInt(endId)) && startObj.value.indexOf("-") >0) {
+                alert(INVALID_PAGE_RANGE);
+                startObj.focus();
+                return false;
+    
+        }
+            if((endId == null) && isNaN(startId) ) {
+                alert(INVALID_PAGE_RANGE);
+                startObj.focus();
+                return false;
+        }
+        if((endId != null) && (isNaN(endId) || isNaN(startId) ||
+                               (parseInt(startId) > parseInt(endId)) || parseInt(endId) > parseInt(TOTAL_NO_OF_PAGES))) {
+                alert(INVALID_PAGE_RANGE);
+                startObj.focus();
+                return false;
+            }
+
+        var pageRange = endId - startId;
+        if (pageRange >= 25) {
+            alert(INVALID_PAGE_RANGE);
+            return false;
+        }
+        
+        return true;
+    }   
+    
+    function validatePageRange(idPrefix) {
+        if(!isValidPageRange(idPrefix)) {
+            return false;
+        }
+        var endId = idPrefix+"_end";
+        var startId = idPrefix+"_start";
+        var startObj = getReturnedObj(startId);
+        var endObj = getReturnedObj(endId);
+        var totalPagesId = idPrefix+"_TotalPages";
+        var totalPagesObj = getReturnedObj(totalPagesId);
+        if(!isValidPageNumber(startObj, totalPagesObj) ||
+                    !isValidPageNumber(endObj, totalPagesObj)) {
+            return false;
+        }
+        return true;
+    }
+
+    function isValidPageNumber(obj, totalPagesObj) {
+        if(totalPagesObj != null) {
+            if(parseInt(obj.value) > parseInt(totalPagesObj.value)) {
+                alert(INVALID_PAGE_RANGE + " Pages Available: " + totalPagesObj.value);
+                obj.focus();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function appendPageRangeInfo(hrefURL) {
+        var formObj = document.forms[0];
+        pageIndex=eval("formObj.pageIndex").value;
+        hrefURL = hrefURL+"&pageIndex="+pageIndex;
+        return hrefURL;
+    }
+
+    function getReturnedObj(name) {
+      var thisObj;
+      if (document.getElementById) {
+            thisObj = document.getElementById(name);
+      } else if (document.all) {
+            thisObj = document.all[name];
+      } else if (document.layers) {
+            thisObj = document.layers[name];
+      }
+      return thisObj;
+    }
+    function BrowserKeyCap(e) {
+        var frmObj = this.document.forms[0];
+        var textCount = 0;
+        if(navigator.appName == "Microsoft Internet Explorer" && window.event.keyCode == 13) {
+            for(var i=0; i<frmObj.elements.length;i++) {
+                if(frmObj.elements[i].type == 'text') {
+                    textCount++;
+                }
+            }
+            if(textCount > 0 ) {
+                constructURLandSubmit();
+            }
+        }
+        if(navigator.appName == "Netscape" && e.which == 13) {
+            for(var i=0; i<frmObj.elements.length;i++) {
+                if(frmObj.elements[i].type == 'text') {
+                    textCount++;
+                }
+            }
+            if(textCount > 0) {
+                constructURLandSubmit();
+            }
+        }
+    }
+    
+    function enableEnterKeyForDownload(e) {
+        if ((e.which && e.which == 13) || (e.keyCode && e.keyCode == 13)) 
+        {
+            javascript:constructURLandSubmit();
+            return false;
+        }
+    }
+    </script>
+</head>
+
+<div id="popIn_tools">
+    <div class="header">        
+        <h1>Download</h1>
+    </div>
+
+    <form class="cssform"  name="frmPrintFascimileFormat" id="frmPrintFascimileFormat" onsubmit="return false">
+    <div id="emailPage">
+
+            <div id="emailAddress">
+                <h2>Select a format and download
+
+                </h2>
+                <div class="wtBox2Download" style="padding:5px">
+                    
+                            <!-- input type="radio" name="printFascimileFormat" value="HTML" checked="checked" />HTML<br /-->
+                            
+                            
+                            
+                            <input type="radio" class="printRadio" name="printFascimileFormat" value="PDFEntire" checked="checked" onclick="javascript:pageRange.disabled=true;pageRange.value=''"/>
+                                    Entire article in PDF format (portrait)
+                                <br/>
+                            
+                            
+                            
+                            <input type="radio" class="printRadio" name="printFascimileFormat" value="PDFLandScape"  onclick="javascript:pageRange.disabled=true;pageRange.value=''"/>
+                                    Entire article in PDF format (landscape)
+                                <br/>
+                            
+                            
+                            
+                                
+                            
+                                            
+                            
+                                    <input type="radio" class="printRadio" name="printFascimileFormat" value="PDF3Article" onclick="javascript:pageRange.disabled=true;pageRange.value=''"/>
+                                            Entire article in 3 parts (useful for long, thin articles)
+                                    <br/>
+                            
+                            
+                            
+                                    <input type="radio" class="printRadio" name="printFascimileFormat" value="PDF4Article" onclick="javascript:pageRange.disabled=true;pageRange.value=''"/>
+                                            Entire article in 4 parts (useful for page-size articles)
+                                    <br/>
+                            
+                                                                
+                            
+                                
+
+                            <input type="radio" onclick="javascript:pageRange.disabled=false" value="PDFRange" name="printFascimileFormat"/>
+                            Select page range to view/print in PDF format. This document contains 1 pages.
+                                    <br/>
+                            <div id="searchFieldSavePrint">Enter image number ranges in the form: 1-25 &nbsp;
+                            <input type="text" id="pageRange" disabled="true" name="pageRange" onkeypress="enableEnterKeyForDownload(event)"/>
+                            </div>
+                            <div id="noteSection">
+                                NOTE:The total number of pages shown above for this work, and the image range you may specify, is based on the sequential image numbers assigned to each page image in the collection, which often do not correspond to the page numbers originally printed in the document.
+                                <br/>
+                                <br/>
+                                You can download/print up to 25 page images at a time. For larger works, you will need to make separate downloads, each indicating the required page ranges. For example, for a work with 39 page images, download the first 25 pages, and then as a second download, request pages 26-39.
+                            </div>                                  
+                            <div class="buttons">
+                                <div class="rolloverdownload">
+                                    <a href="javascript:constructURLandSubmit()" style="border:none">                                       
+                                    </a>
+                                </div>
+                                <div class="rolloverCancel">
+                                    <a href="javascript:window.close()">                                        
+                                    </a>
+                            </div>
+                </div>
+            </div>          
+    </div>
+    <input type="hidden" name="pageIndex" value="2"/>
+    <input type="hidden" id="noOfPages" name="noOfPages" value="1"/>
+    <input type="hidden" id="pdfLowerLimit" name="pdfLowerLimit" value="1"/>
+    <input type="hidden" id="pdfHigherLimit" name="pdfHigherLimit" value="1"/>
+    <input type="hidden" id="reformatPage" name="reformatPage" value=""/>
+    <input type="hidden" id="docPage" name="docPage" value="article"/>
+    <input type="hidden" id="enlarge" name="enlarge" value=""/>
+    <input type="hidden" id="recNum" name="recNum" value=""/>
+    <input type="hidden" id="mcode" name="mcode" value=""/>
+    <input type="hidden" id="isseuNum" name="issueNum" value=""/>
+    <input type="hidden" id="callistoContentSet" name="callistoContentSet" value=""/>   
+    <input type="hidden" id="qrySerId" name="qrySerId" value="Locale%28en%2C%2C%29%3AFQE%3D%28ke%2CNone%2C15%29%22Election+Riot%22%3AAnd%3ALQE%3D%28MB%2CNone%2C149%29Bbcn+Or+Ncuk-1+Or+Bncn-1+Or+Bncn-2+Or+Bncn-3+Or+Bncn-4+Or+Dmha+Or+Econ+Or+Ftha+Or+Iln+Or+Inda-1+Or+Inda-2+Or+Lsnr+Or+Pipo+Or+Ttda-1+Or+Ttda-2+Or+Tlsh%24"/>   
+    </form>
+</div>
+
+</html>

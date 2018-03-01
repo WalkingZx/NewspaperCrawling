@@ -15,15 +15,15 @@ class CrawlerItem(scrapy.Item):
     pass
 
 class PageItem(scrapy.Item):
-	"""docstring for ArticleItem"""
-	titles = scrapy.Field()
-	descriptions = scrapy.Field()
-	hints = scrapy.Field()
-	publishs = scrapy.Field()
-	newspapers = scrapy.Field()
-	counties = scrapy.Field()
-	types = scrapy.Field()
-	words = scrapy.Field()
-	pages = scrapy.Field()
-	tags = scrapy.Field()
-
+    """docstring for ArticleItem"""
+    titles = scrapy.Field()
+    descriptions = scrapy.Field()
+    hints = scrapy.Field()
+    publishs = scrapy.Field()
+    newspapers = scrapy.Field()
+    counties = scrapy.Field()
+    types = scrapy.Field()
+    words = scrapy.Field()
+    pages = scrapy.Field()
+    tags = scrapy.Field()
+    download_pages = scrapy.Field()

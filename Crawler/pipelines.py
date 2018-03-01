@@ -11,7 +11,7 @@ class CrawlerPipeline(object):
     def process_item(self, item, spider):
         return item
 
-class BNAPipeline(object):
+class NewsPipeline(object):
 
     def extract_words_from_hints(self, hints):
         p = re.compile('<[^>]+>')
@@ -29,25 +29,35 @@ class BNAPipeline(object):
         # str_ = p.sub("", str_).replace('Published:\r', '')
         return re.sub(r'\s+','', str_).replace('Published:', '')
 
-    def process_item(self, PageItem, BNASpider):
-        articles_in_page_count = len(PageItem['publishs'])
-        for i in range(articles_in_page_count):
-            title       = self.extract_words_from_line_break(PageItem['titles'][i])
-            description = self.extract_words_from_line_break(PageItem['descriptions'][i])
-            hint        = self.extract_words_from_hints(PageItem['hints'][i])
-            publish     = self.extract_date_from_string(PageItem['publishs'][i])
-            newspaper   = self.extract_words_from_line_break(PageItem['newspapers'][i])
-            county      = self.extract_words_from_line_break(PageItem['counties'][i])
-            type_       = self.extract_words_from_line_break(PageItem['types'][i])
-            word        = self.extract_number_from_string(PageItem['words'][i])
-            page        = self.extract_number_from_string(PageItem['pages'][i])
-            tag         = self.extract_words_from_line_break(PageItem['tags'][i])
+    def process_item(self, PageItem, spider):
+
+        if spider.name == 'BNA':
+            articles_in_page_count = len(PageItem['publishs'])
+            for i in range(articles_in_page_count):
+                title       = self.extract_words_from_line_break(PageItem['titles'][i])
+                description = self.extract_words_from_line_break(PageItem['descriptions'][i])
+                hint        = self.extract_words_from_hints(PageItem['hints'][i])
+                publish     = self.extract_date_from_string(PageItem['publishs'][i])
+                newspaper   = self.extract_words_from_line_break(PageItem['newspapers'][i])
+                county      = self.extract_words_from_line_break(PageItem['counties'][i])
+                type_       = self.extract_words_from_line_break(PageItem['types'][i])
+                word        = self.extract_number_from_string(PageItem['words'][i])
+                page        = self.extract_number_from_string(PageItem['pages'][i])
+                tag         = self.extract_words_from_line_break(PageItem['tags'][i])
+                
+                article_item = ArticleItem(title, description, hint, publish, newspaper, county, type_, word, page, tag)
             
-            article_item = ArticleItem(title, description, hint, publish, newspaper, county, type_, word, page, tag)
-        
-            with open("Crawler/Records/BNA.json","a") as f:
-                json.dump(article_item.__dict__ ,f)
-                f.write(',\n')
+                with open("Crawler/Records/BNA.json","a") as f:
+                    json.dump(article_item.__dict__ ,f)
+                    f.write(',\n')
+
+        elif spider.name == 'GN':
+            articles_in_page_count = len(PageItem['newspapers'])
+            for i in PageItem['download_pages']:
+                print i + '\n'
+            # print PageItem['newspapers']
+            # for a in range(articles_in_page_count):
+                # print PageItem['newspapers'][a]
         # for x in article_items:
         #     for key in x.__dict__:
         #             print key + ':  ' + x.__dict__[key]
@@ -63,6 +73,10 @@ class BNAPipeline(object):
     # words = scrapy.Field()
     # pages = scrapy.Field()
     # tags = scrapy.Field()
+
+# class GNPipeline(object):
+#     def procesee_itm(self, PageItem, GNSpider):
+#         print PageItem['titles']
 
 class ArticleItem:
     def __init__(self, title, description, hint, publish, newspaper, county, type_, word, page, tag):

@@ -10,8 +10,8 @@ sys.setdefaultencoding('utf-8')
 
 class BNASpider(Spider):
     name = "BNA"
-    base_url = 'https://www.britishnewspaperarchive.co.uk'
-    start_urls = ['https://www.britishnewspaperarchive.co.uk/search/results?basicsearch=%22election%20riot%22&retrievecountrycounts=false&page=0']
+    start_urls = ['https://www.britishnewspaperarchive.co.uk/search/results?basicsearch="election riot"&retrievecountrycounts=false&page=0']
+    
     headers = {
     "Accept"            :"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
     "Accept-Encoding"   :"gzip, deflate, br",
@@ -98,9 +98,12 @@ class BNASpider(Spider):
                     # print item_str
                     print 'Error'
         yield page
+
+        
         next_page = self.parse_next_page(response)
-        next_page_full_url = response.urljoin(next_page)
-        yield scrapy.Request(next_page_full_url, callback=self.parse, headers=self.headers)
+        if next_page is not None:
+            next_page_full_url = response.urljoin(next_page)
+            yield scrapy.Request(next_page_full_url, callback=self.parse, headers=self.headers)
 
 
             

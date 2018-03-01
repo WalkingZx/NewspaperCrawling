@@ -18,7 +18,7 @@ NEWSPIDER_MODULE = 'Crawler.spiders'
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'Crawler (+http://www.yourdomain.com)'
 ITEM_PIPELINES = {  
-    'Crawler.pipelines.BNAPipeline': 300,  
+    'Crawler.pipelines.NewsPipeline': 300,  
 }
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
