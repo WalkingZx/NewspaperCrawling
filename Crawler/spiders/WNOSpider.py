@@ -11,7 +11,7 @@ sys.setdefaultencoding('utf-8')
 
 class WNOSpider(Spider):
     name = "WNO"
-    SITE_NAME = 'Wals News Lib WebsITE'
+    SITE_NAME = 'Wals News Lib WebSite'
     SEARCH_KEY_WORD = '"Election Riot"'
 
     url = 'http://newspapers.library.wales/search?range[min]=1804&range[max]=1919&query=' + SEARCH_KEY_WORD
