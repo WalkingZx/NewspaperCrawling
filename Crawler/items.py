@@ -16,6 +16,9 @@ class CrawlerItem(scrapy.Item):
 
 class PageItem(scrapy.Item):
     """docstring for ArticleItem"""
+    site = scrapy.Field()
+    keyword = scrapy.Field()
+    reprints = scrapy.Field()
     titles = scrapy.Field()
     descriptions = scrapy.Field()
     hints = scrapy.Field()
@@ -27,3 +30,4 @@ class PageItem(scrapy.Item):
     pages = scrapy.Field()
     tags = scrapy.Field()
     download_pages = scrapy.Field()
+    download_urls = scrapy.Field()

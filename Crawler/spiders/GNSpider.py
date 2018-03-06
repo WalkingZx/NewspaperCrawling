@@ -13,6 +13,7 @@ sys.setdefaultencoding('utf-8')
 
 class GNSpider(Spider):
     name = "GN"
+    SITE_NAME = 'Gale Website'
     SEACH_KEY_WORD = '"Election Riot"'
 
     headers = {
@@ -122,12 +123,12 @@ class GNSpider(Spider):
         cookie = response.request.headers.getlist('Cookie')
         url = 'http://find.galegroup.com.ezphost.dur.ac.uk/dvnw/basicSearch.do'
         data = 'inputFieldName(0)=ke&inputFieldValue(0)=stchad&allbox=on&limiterFieldValue(ML)=Bbcn\
-        &limiterFieldValue(ML)=Ncuk-1&limiterFieldValue(ML)=Bncn-1&limiterFieldValue(ML)=Bncn-2&limiterFieldValue(ML)=Bncn-3\
-        &limiterFieldValue(ML)=Bncn-4&limiterFieldValue(ML)=Dmha&limiterFieldValue(ML)=Econ&limiterFieldValue(ML)=Ftha\
-        &limiterFieldValue(ML)=Iln&limiterFieldValue(ML)=Inda-1 Or Inda-2&limiterFieldValue(ML)=Lsnr&limiterFieldValue(ML)=Pipo\
-        &limiterFieldValue(ML)=Ttda-1 Or Ttda-2&limiterFieldValue(ML)=Tlsh&limiterType(ML)=OR&searchType=BasicSearchForm\
-        &sgHitCountType=None&userGroupName=duruni&prodId=DVNW&startYear=1604&endYear=2016&isWhatsNewAvailable=&TAB1=&TAB2=\
-        &ALTERNATE_TAB=&userGroupISBN=&method=doSearch&allLimiters='
+                &limiterFieldValue(ML)=Ncuk-1&limiterFieldValue(ML)=Bncn-1&limiterFieldValue(ML)=Bncn-2&limiterFieldValue(ML)=Bncn-3\
+                &limiterFieldValue(ML)=Bncn-4&limiterFieldValue(ML)=Dmha&limiterFieldValue(ML)=Econ&limiterFieldValue(ML)=Ftha\
+                &limiterFieldValue(ML)=Iln&limiterFieldValue(ML)=Inda-1 Or Inda-2&limiterFieldValue(ML)=Lsnr&limiterFieldValue(ML)=Pipo\
+                &limiterFieldValue(ML)=Ttda-1 Or Ttda-2&limiterFieldValue(ML)=Tlsh&limiterType(ML)=OR&searchType=BasicSearchForm\
+                &sgHitCountType=None&userGroupName=duruni&prodId=DVNW&startYear=1604&endYear=2016&isWhatsNewAvailable=&TAB1=&TAB2=\
+                &ALTERNATE_TAB=&userGroupISBN=&method=doSearch&allLimiters='
         cookie = self.generator_cookie(cookie)
         data = self.generator_search_dataItem(data)
         data['inputFieldValue(0)'] = self.SEACH_KEY_WORD
@@ -146,6 +147,9 @@ class GNSpider(Spider):
         data = response.body
         soup = BeautifulSoup(data, 'html.parser', from_encoding='utf-8')
         page = PageItem()
+        page['site'] = []
+        page['keyword'] = []
+        page['reprints'] = []
         page['titles'] = []
         page['publishs'] = []
         page['counties'] = []
@@ -154,7 +158,12 @@ class GNSpider(Spider):
         page['download_pages'] = []
 
         all_articles = soup.find_all('li', class_ = 'resultInfo')
+        all_reprint = soup.find_all('li', class_ = 'collectionName')
+        for reprint in all_reprint:
+            page['reprints'].append(reprint.i.get_text())
         for article in all_articles:
+            page['site'].append(self.SITE_NAME)
+            page['keyword'].append(self.SEACH_KEY_WORD)
             page['titles'].append(article.p.b.a.spcitation.get_text())
             newspaper, county, text = article.find('span', class_ = 'txt_Detail').stripped_strings
             page['counties'].append(county)
@@ -172,7 +181,6 @@ class GNSpider(Spider):
         yield page
 
         next_page = soup.find('a', attrs = {'title' : 'Next'})
-
         if next_page is not None:
             next_page = next_page.get('href')
             next_page_full_url = response.urljoin(next_page)

@@ -10,7 +10,9 @@ sys.setdefaultencoding('utf-8')
 
 class BNASpider(Spider):
     name = "BNA"
-    start_urls = ['https://www.britishnewspaperarchive.co.uk/search/results?basicsearch="election riot"&retrievecountrycounts=false&page=0']
+    SITE_NAME = 'britishnewspaperarchive'
+    SEARCH_KEY_WORD = '"Election Riot"'
+    start_urls = ['https://www.britishnewspaperarchive.co.uk/search/results?basicsearch=' + SEARCH_KEY_WORD + '&retrievecountrycounts=false&page=0']
     
     headers = {
     "Accept"            :"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -40,6 +42,8 @@ class BNASpider(Spider):
         # pages = scrapy.Field()
         # tags = scrapy.Field()
         page = PageItem()
+        page['site'] = []
+        page['keyword'] = []
         page['titles'] = []
         page['hints'] = []
         page['descriptions'] = []
@@ -59,6 +63,8 @@ class BNASpider(Spider):
             this_title=article.find('h4', class_="bna-card__title")
             for title in this_title.stripped_strings:
                 page['titles'].append(title)
+                page['site'].append(self.SITE_NAME)
+                page['keyword'].append(self.SEARCH_KEY_WORD)
 
             # To get the title text title tag
             this_title=article.find('h4', class_="bna-card__title")
