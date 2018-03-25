@@ -29,5 +29,6 @@ class PageItem(scrapy.Item):
     words = scrapy.Field()
     pages = scrapy.Field()
     tags = scrapy.Field()
+    ocrs = scrapy.Field()
     download_pages = scrapy.Field()
     download_urls = scrapy.Field()

@@ -1,19 +1,32 @@
+# -*- coding: utf-8 -*-
 from scrapy.spiders import Spider
 from bs4 import BeautifulSoup
 from Crawler.items import PageItem
+import requests
 import re
 import sys
 import scrapy
+import json
 
 reload(sys)  
 sys.setdefaultencoding('utf-8')
 
 class BNASpider(Spider):
+
+    Username = 'nick.vivyan@durham.ac.uk'
+    Password = 'EV19@Nick'
+    RememberMe = 'false'
+    NextPage = ''
+
     name = "BNA"
+    LOGIN_URL = "https://www.britishnewspaperarchive.co.uk/account/login"
     SITE_NAME = 'britishnewspaperarchive'
     SEARCH_KEY_WORD = '"Election Riot"'
-    start_urls = ['https://www.britishnewspaperarchive.co.uk/search/results?basicsearch=' + SEARCH_KEY_WORD + '&retrievecountrycounts=false&page=0']
-    
+    START_DATE = "1800-01-01"
+    END_DATE = "1849-12-31"
+    SLASH = '/'
+    parse_urls = ['https://www.britishnewspaperarchive.co.uk/search/results'+SLASH + START_DATE + SLASH + END_DATE + '?basicsearch=' + SEARCH_KEY_WORD + '&retrievecountrycounts=false&page=0']
+
     headers = {
     "Accept"            :"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
     "Accept-Encoding"   :"gzip, deflate, br",
@@ -21,8 +34,20 @@ class BNASpider(Spider):
     "Cache-Control"     :"max-age=0",
     "Connection"        :"keep-alive",
     "Host"              :"www.britishnewspaperarchive.co.uk",
-    "User-Agent"        :"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.167 Safari/537.36"
+    "User-Agent"        :"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.167 Safari/537.36",
+    "Origin"            :"https://www.britishnewspaperarchive.co.uk",
+    "Link"              :"<https://www.britishnewspaperarchive.co.uk/account/login>; rel=\"canonical\"",
+    "X-Frame-Options"   :"SAMEORIGIN",
     }
+
+    # def stringToDict(self, cookies):
+    #     itemDict = {}
+    #     items = cookies.split(';')
+    #     for item in items:  
+    #         key = item.split('=')[0].replace(' ', '')
+    #         value = item.split('=')[1]  
+    #         itemDict[key] = value  
+    #     return itemDict             
 
     def parse_next_page(self, response):
         data = response.body
@@ -34,13 +59,41 @@ class BNASpider(Spider):
         else:
             print 'Error'
 
-    def parse(self, response):
-        # //*[@id="ajaxcontainer"]/div[3]/div/div[2]/article[1]/div[3]/footer/div/small/span[1]/text()
-        # countries = scrapy.Field()
-        # types = scrapy.Field()
-        # words = scrapy.Field()
-        # pages = scrapy.Field()
-        # tags = scrapy.Field()
+    def start_requests(self):
+        print 'Ready to login...********'
+        return [scrapy.FormRequest(url=self.LOGIN_URL,                           
+                                headers = self.headers,
+                                meta = {
+                                    'dont_redirect': True,
+                                    'handle_httpstatus_list': [302]
+                                },  
+                                formdata = {
+                                'Username': self.Username,
+                                'Password': self.Password,
+                                'RememberMe': self.RememberMe,
+                                'NextPage': self.NextPage
+                                },
+                                callback = self.after_login,
+                                dont_filter=False
+                                )]
+
+    def after_login(self, response):
+        print 'After Login*********'
+        Cookie = response.headers.getlist('Set-Cookie')[0].split(';')[0].split('session_0=')[1]
+        # Cookie = response.headers
+        session_cookies = {'session_0':Cookie}
+        # print session_0_cookies
+        # print session_0_cookies
+        for url in self.parse_urls:
+            # yield self.make_requests_from_url(url)
+            return scrapy.Request(url, cookies = session_cookies, callback = self.parse_page)
+
+    def parse_page(self, response):
+        Cookie_str = response.request.headers.getlist('Cookie')[0].split(';')[0].split('session_0=')[1]
+        session_cookies = {'session_0':Cookie_str}
+        # Cookie = {'Cookie':Cookie_str}
+        if Cookie_str == '':
+            print 'No Cookie, you have to restart this crawler!'
         page = PageItem()
         page['site'] = []
         page['keyword'] = []
@@ -54,13 +107,32 @@ class BNASpider(Spider):
         page['pages'] = []
         page['tags'] = []
         page['newspapers'] = []
+        page['download_pages']= []
+        page['download_urls'] = []
+        page['ocrs'] = []
+
+        # print response.headers.getlist('Set-Cookie')
         data = response.body
         soup = BeautifulSoup(data, "html.parser", from_encoding="utf8")
+        # Cookie = response.headers.getlist('Set-Cookie')
+        # cookies = self.stringToDict(Cookie)
         # print soup
         all_articles = soup.find_all("article", class_ = "bna-card")
         for article in all_articles:
             # To get the title text 
             this_title=article.find('h4', class_="bna-card__title")
+
+            article_detail_url = response.urljoin(this_title.find('a').get('href'))
+            page['download_pages'].append(article_detail_url)
+            download_url, ocr = self.parse_details(article_detail_url, headers = self.headers, cookies = session_cookies)
+            page['download_urls'].append(download_url)
+            page['ocrs'].append(ocr)
+            # print download_url
+            # print ocr
+            # with open('detail.html', 'wb') as file:
+                # file.write(html.content)
+            # page_detail = self.parse_details(url = article_detail_url, cookies = cookies)
+
             for title in this_title.stripped_strings:
                 page['titles'].append(title)
                 page['site'].append(self.SITE_NAME)
@@ -105,11 +177,27 @@ class BNASpider(Spider):
                     print 'Error'
         yield page
 
-        
         next_page = self.parse_next_page(response)
         if next_page is not None:
             next_page_full_url = response.urljoin(next_page)
-            yield scrapy.Request(next_page_full_url, callback=self.parse, headers=self.headers)
+            yield scrapy.Request(next_page_full_url, callback=self.parse_page, headers=self.headers)
+
+    def parse_details(self, url, headers, cookies):
+        link = url.split('bl')[1]
+        # print ocr_link
+        ocr_link = 'https://www.britishnewspaperarchive.co.uk/tags/itemocr/BL/' + link
+        json_str = requests.get(ocr_link, cookies = cookies, headers=self.headers)
+        json_str.encoding = 'gbk'
+        json_str = json.loads(json_str.content)
+        OCR_text = ''
+        for j in json_str:
+            OCR_text = OCR_text + j['LineText']
+        # print OCR_text
+        download_url = 'https://www.britishnewspaperarchive.co.uk/viewer/download/bl' + link
+        return download_url, OCR_text
+
+
+
 
 
             

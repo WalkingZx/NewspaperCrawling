@@ -59,10 +59,15 @@ class NewsPipeline(object):
                 word        = self.extract_number_from_string(PageItem['words'][i])
                 page        = self.extract_number_from_string(PageItem['pages'][i])
                 tag         = self.extract_words_from_line_break(PageItem['tags'][i])
+                download_page = PageItem['download_pages'][i]
+                download_url = PageItem['download_urls'][i]
+                ocr         = PageItem['ocrs'][i]
                 
+                print ocr
                 article_item = ArticleItem(site = site, keyword= keyword, title=title, description=description, hint=hint, publish=publish, newspaper=newspaper, 
-                    county=county, type_=type_, word=word, page=page, tag=tag)
+                    county=county, type_=type_, word=word, page=page, tag=tag, download_url=download_url, download_page = download_page, ocr = ocr)
 
+                print 'Writting the data into the json file now..........'
                 filename = site
                 article_item.writeIntoJsonFile(filename)
 
@@ -81,7 +86,7 @@ class NewsPipeline(object):
 
                 article_item = ArticleItem(site=site, keyword=keyword, reprint=reprint, title=title, publish=publish, county=county, word=word, newspaper=newspaper,
                     download_page=download_page)
-
+                print 'Writting the data into the json file now..........'
                 filename = site
                 article_item.writeIntoJsonFile(filename)
 
@@ -119,7 +124,7 @@ class NewsPipeline(object):
 class ArticleItem:
 
     def __init__(self, title=None, keyword=None, description=None, hint=None, publish=None, newspaper=None, county=None, type_=None, word=None, page=None, tag=None,
-        site=None, reprint=None, download_page=None, download_url=None):
+        site=None, reprint=None, download_page=None, download_url=None, ocr=None):
         self.title = title
         self.keyword = keyword
         self.description = description
@@ -135,6 +140,7 @@ class ArticleItem:
         self.reprint = reprint
         self.download_page = download_page
         self.download_url =download_url
+        self.ocr = ocr
 
     def writeIntoJsonFile(self, filename):
         with open("Crawler/Records/" + filename + ".json","a") as f:

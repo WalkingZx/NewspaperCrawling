@@ -65,8 +65,10 @@ class WNOSpider(Spider):
             page['site'].append(self.SITE_NAME)
             page['keyword'].append(self.SEARCH_KEY_WORD)
             page['download_pages'].append(download_page)
+            print download_page
             page['titles'].append(title)
-
+            yield scrapy.Request(url = download_page, headers = self.headers, callback = self.parse_detail, dont_filter=True)
+        
         all_result_summary = soup.find_all('p', class_='result-summary')
         for result_smmary in all_result_summary:
             description = result_smmary.find('span', class_ = 'hidden-xs').get_text()
@@ -86,34 +88,37 @@ class WNOSpider(Spider):
             page['types'].append(type_)
             page['words'].append(words)
 
-        pattern = re.compile('next page')
-        next_page = soup.find('ul', class_= 'pagination')
-        next_page_text = next_page.find(text=pattern).next_siblings
-        next_button = None
-        next_url = None
-        for sibling in next_page_text:
-            if 'li' in repr(sibling):
-                next_button = repr(sibling)
-                break;
-        if next_button != None:
-            try:
-                next_url_info = next_button.split('"')
-                next_url = next_url_info[1]
-                if next_url:
-                    h = HTMLParser.HTMLParser()
-                    next_url = h.unescape(next_url)
-                    yield scrapy.Request(next_url, callback=self.parse, headers=self.headers)
-            except Exception as e:
-                raise 'Error in getting next page!(WNOSpider)'
-
-        yield page
-
+    def parse_detail(self, response):
+        data = response.body
+        soup = BeautifulSoup(data, "html.parser", from_encoding="utf8")
+        get_id_detail = soup.find('div', attrs = {'id': 'article-panel-main'})
+        id_str = get_id_detail.script.get_text()
+        id_str = id_str.decode("unicode-escape").encode('utf8').split("'")[1]
+        this_ORC = soup.find('div', attrs = {'id' : id_str}).find('span', attrs = {'itemprop' : 'articleBody'})
         
-        # next_page = self.parse_next_page(response)
-        # if next_page is not None:
-        #     next_page_full_url = response.urljoin(next_page)
-        #     yield scrapy.Request(next_page_full_url, callback=self.parse, headers=self.headers)
+        # pass
 
+        # pattern = re.compile('next page')
+        # next_page = soup.find('ul', class_= 'pagination')
+        # next_page_text = next_page.find(text=pattern).next_siblings
+        # next_button = None
+        # next_url = None
+        # for sibling in next_page_text:
+        #     if 'li' in repr(sibling):
+        #         next_button = repr(sibling)
+        #         break;
+        # if next_button != None:
+        #     try:
+        #         next_url_info = next_button.split('"')
+        #         next_url = next_url_info[1]
+        #         if next_url:
+        #             h = HTMLParser.HTMLParser()
+        #             next_url = h.unescape(next_url)
+        #             yield scrapy.Request(next_url, callback=self.parse, headers=self.headers)
+        #     except Exception as e:
+        #         raise 'Error in getting next page!(WNOSpider)'
+
+        # yield page
 
             
 
