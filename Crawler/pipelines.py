@@ -62,13 +62,15 @@ class NewsPipeline(object):
                 download_page = PageItem['download_pages'][i]
                 download_url = PageItem['download_urls'][i]
                 ocr         = PageItem['ocrs'][i]
+                start_date = PageItem['start_date'][i]
+                end_date = PageItem['end_date'][i]
                 
-                print ocr
                 article_item = ArticleItem(site = site, keyword= keyword, title=title, description=description, hint=hint, publish=publish, newspaper=newspaper, 
-                    county=county, type_=type_, word=word, page=page, tag=tag, download_url=download_url, download_page = download_page, ocr = ocr)
+                    county=county, type_=type_, word=word, page=page, tag=tag, download_url=download_url, download_page = download_page, ocr = ocr, start_date=start_date,
+                    end_date=end_date)
 
                 print 'Writting the data into the json file now..........'
-                filename = site
+                filename = "{}_{}_{}_{}".format(site, keyword, start_date, end_date)
                 article_item.writeIntoJsonFile(filename)
 
         elif spider.name == 'GN':
@@ -112,10 +114,15 @@ class NewsPipeline(object):
                 newspaper = self.extract_words_from_line_break(PageItem['newspapers'][i])
                 page = self.extract_number_from_string(PageItem['pages'][i])
                 download_page = PageItem['download_pages'][i]
+                ocr = self.extract_words_from_line_break(PageItem['ocrs'][i])
+                start_date = PageItem['start_date'][i]
+                end_date = PageItem['end_date'][i]
 
                 article_item = ArticleItem(site=site, keyword=keyword, title=title, publish=publish, description=description, type_=type_,
-                    word=words, newspaper=newspaper, page=page, download_page=download_page)
-                filename =site
+                    word=words, newspaper=newspaper, page=page, download_page=download_page, ocr=ocr, start_date=start_date, end_date=end_date)
+                
+                print 'Writting the data into the json file now..........'
+                filename = "{}_{}_{}_{}".format(site, keyword, start_date, end_date)
                 article_item.writeIntoJsonFile(filename)
             # articles_in_page_count = len(PageItem['newspapers'])
             # for i in PageItem['download_pages']:
@@ -124,7 +131,7 @@ class NewsPipeline(object):
 class ArticleItem:
 
     def __init__(self, title=None, keyword=None, description=None, hint=None, publish=None, newspaper=None, county=None, type_=None, word=None, page=None, tag=None,
-        site=None, reprint=None, download_page=None, download_url=None, ocr=None):
+        site=None, reprint=None, download_page=None, download_url=None, ocr=None, start_date=None, end_date=None):
         self.title = title
         self.keyword = keyword
         self.description = description
@@ -141,6 +148,8 @@ class ArticleItem:
         self.download_page = download_page
         self.download_url =download_url
         self.ocr = ocr
+        self.start_date = start_date
+        self.end_date = end_date
 
     def writeIntoJsonFile(self, filename):
         with open("Crawler/Records/" + filename + ".json","a") as f:

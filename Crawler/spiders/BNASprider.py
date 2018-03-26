@@ -7,6 +7,8 @@ import re
 import sys
 import scrapy
 import json
+import os
+import csv
 
 reload(sys)  
 sys.setdefaultencoding('utf-8')
@@ -19,13 +21,24 @@ class BNASpider(Spider):
     NextPage = ''
 
     name = "BNA"
+    SEARCH_URL = 'https://www.britishnewspaperarchive.co.uk/search/results'
     LOGIN_URL = "https://www.britishnewspaperarchive.co.uk/account/login"
     SITE_NAME = 'britishnewspaperarchive'
-    SEARCH_KEY_WORD = '"Election Riot"'
-    START_DATE = "1800-01-01"
-    END_DATE = "1849-12-31"
+    SEARCH_KEY_WORD_INFOS = []
     SLASH = '/'
-    parse_urls = ['https://www.britishnewspaperarchive.co.uk/search/results'+SLASH + START_DATE + SLASH + END_DATE + '?basicsearch=' + SEARCH_KEY_WORD + '&retrievecountrycounts=false&page=0']
+
+    INPUT_FILENAME = 'Crawler/spiders/BNA_search_input.csv'
+    if os.path.exists(INPUT_FILENAME):
+        print '\nHad found the input file, reading now...\n'
+        with open(INPUT_FILENAME,'rb') as csvfile:
+            reader = csv.DictReader(csvfile)
+            SEARCH_KEY_WORD_INFOS = [row for row in reader]
+    else:
+        print '\nDid not find the input file, please check if thie file exists!\n'
+    
+    parse_urls = []
+    for i in range(len(SEARCH_KEY_WORD_INFOS)):
+        parse_urls.append(SEARCH_URL + SLASH + SEARCH_KEY_WORD_INFOS[i]['start day(xxxx-xx-xx)'] + SLASH + SEARCH_KEY_WORD_INFOS[i]['end day(xxxx-xx-xx)'] + '?basicsearch=' + SEARCH_KEY_WORD_INFOS[i]['keyword'] + '&retrievecountrycounts=false&page=0')
 
     headers = {
     "Accept"            :"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -60,7 +73,7 @@ class BNASpider(Spider):
             print 'Error'
 
     def start_requests(self):
-        print 'Ready to login...********'
+        print '\nReady to login...\n'
         return [scrapy.FormRequest(url=self.LOGIN_URL,                           
                                 headers = self.headers,
                                 meta = {
@@ -78,22 +91,25 @@ class BNASpider(Spider):
                                 )]
 
     def after_login(self, response):
-        print 'After Login*********'
+        print '\nAfter Login..\n'
         Cookie = response.headers.getlist('Set-Cookie')[0].split(';')[0].split('session_0=')[1]
         # Cookie = response.headers
         session_cookies = {'session_0':Cookie}
-        # print session_0_cookies
-        # print session_0_cookies
-        for url in self.parse_urls:
-            # yield self.make_requests_from_url(url)
-            return scrapy.Request(url, cookies = session_cookies, callback = self.parse_page)
+        if Cookie == '':
+            print '\nNo Cookie, restart!\n'
+        else:
+            count = 0
+            for url in self.parse_urls:
+                yield scrapy.Request(url, meta={"keyword_count": count}, cookies = session_cookies, callback = self.parse_page)
+                count = count + 1
 
     def parse_page(self, response):
         Cookie_str = response.request.headers.getlist('Cookie')[0].split(';')[0].split('session_0=')[1]
         session_cookies = {'session_0':Cookie_str}
         # Cookie = {'Cookie':Cookie_str}
-        if Cookie_str == '':
-            print 'No Cookie, you have to restart this crawler!'
+        keyword_count = response.meta['keyword_count']
+        print 'KeyWord Count:', keyword_count
+
         page = PageItem()
         page['site'] = []
         page['keyword'] = []
@@ -110,6 +126,8 @@ class BNASpider(Spider):
         page['download_pages']= []
         page['download_urls'] = []
         page['ocrs'] = []
+        page['start_date'] = []
+        page['end_date'] = []
 
         # print response.headers.getlist('Set-Cookie')
         data = response.body
@@ -136,7 +154,9 @@ class BNASpider(Spider):
             for title in this_title.stripped_strings:
                 page['titles'].append(title)
                 page['site'].append(self.SITE_NAME)
-                page['keyword'].append(self.SEARCH_KEY_WORD)
+                page['keyword'].append(self.SEARCH_KEY_WORD_INFOS[keyword_count]['keyword'])
+                page['start_date'].append(self.SEARCH_KEY_WORD_INFOS[keyword_count]['start day(xxxx-xx-xx)'])
+                page['end_date'].append(self.SEARCH_KEY_WORD_INFOS[keyword_count]['end day(xxxx-xx-xx)'])
 
             # To get the title text title tag
             this_title=article.find('h4', class_="bna-card__title")
@@ -180,7 +200,7 @@ class BNASpider(Spider):
         next_page = self.parse_next_page(response)
         if next_page is not None:
             next_page_full_url = response.urljoin(next_page)
-            yield scrapy.Request(next_page_full_url, callback=self.parse_page, headers=self.headers)
+            yield scrapy.Request(next_page_full_url, callback=self.parse_page, meta={"keyword_count": keyword_count},headers=self.headers)
 
     def parse_details(self, url, headers, cookies):
         link = url.split('bl')[1]

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from scrapy.spiders import Spider
 from bs4 import BeautifulSoup
 from Crawler.items import PageItem
@@ -5,6 +6,10 @@ import re
 import sys
 import scrapy
 import HTMLParser
+import requests
+import os
+import csv
+import urllib
 
 reload(sys)  
 sys.setdefaultencoding('utf-8')
@@ -12,16 +17,22 @@ sys.setdefaultencoding('utf-8')
 class WNOSpider(Spider):
     name = "WNO"
     SITE_NAME = 'Wals News Lib WebSite'
-    SEARCH_KEY_WORD = '"Election Riot"'
+    SEARCH_KEY_WORD_INFOS = []
+    # url = 'http://newspapers.library.wales/search?range[min]=' + START_DATE + '&range[max]=' + END_DATE + '&query=' + SEARCH_KEY_WORD
 
-    url = 'http://newspapers.library.wales/search?range[min]=1804&range[max]=1919&query=' + SEARCH_KEY_WORD
-    # advanced_url = url +  '&category[]='
-    start_urls = [url]
+    INPUT_FILENAME = 'Crawler/spiders/WNO_search_input.csv'
 
-        #if you want to go for a advanced search, you can add one parameter &category[]=, and the value
-        #can be News, Detailed Lists, Results and Guides, Advertising, Family Notices
-        #you can choose more than one value do your search, for example, 
-        #http://newspapers.library.wales/search?range[min]=1804&range[max]=1919&query="Election Riot"&category[]=News&category[]=Advertising
+    if os.path.exists(INPUT_FILENAME):
+        print '\nHad found the input file, reading now...\n'
+        with open(INPUT_FILENAME,'rb') as csvfile:
+            reader = csv.DictReader(csvfile)
+            SEARCH_KEY_WORD_INFOS = [row for row in reader]
+    else:
+        print '\nDid not find the input file, please check if thie file exists!\n'
+
+    start_urls =[]
+    for i in range(len(SEARCH_KEY_WORD_INFOS)):
+        start_urls.append('http://newspapers.library.wales/search?range[min]=' + SEARCH_KEY_WORD_INFOS[i]['start_date(xxxx)'] + '&range[max]=' + SEARCH_KEY_WORD_INFOS[i]['end_date(xxxx)'] + '&query=' + SEARCH_KEY_WORD_INFOS[i]['keyword'] + '&page=1')
 
     headers = {
     "Accept"            :"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
@@ -32,17 +43,26 @@ class WNOSpider(Spider):
     "User-Agent"        :"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.167 Safari/537.36"
     }
 
-    def parse_next_page(self, response):
-        data = response.body
-        soup = BeautifulSoup(data, "html.parser", from_encoding="utf8")
-        next_page = soup.find(name = 'a', attrs = {'title':re.compile(r"Forward")})
-        # print len(next_page)
-        if next_page:
-            return next_page['href']
+    def extract_info_from_url(self, str_):
+        # s = '(Edinburgh, Scotland),'
+        words = re.match(r'.*range\[min\]=(.*)&range\[max\]=(.*)&query=(.*)&.*', str_)
+        if words!=None:
+            keyword = words.group(3)
+            if '+' in keyword:
+                keyword = keyword.replace('+', ' ')
+            return words.group(1), words.group(2), keyword
         else:
-            print 'Error'
+            return None
 
     def parse(self, response):
+        this_url = response.url
+        this_url=urllib.unquote(this_url).decode('utf-8', 'replace').encode('gbk', 'replace')
+        s, t, r = self.extract_info_from_url(this_url)
+        SEARCH_KEY_WORD = r
+        START_DATE = s
+        END_DATE = t
+
+        print SEARCH_KEY_WORD
         page = PageItem()
         page['site'] = []
         page['keyword'] = []
@@ -54,6 +74,9 @@ class WNOSpider(Spider):
         page['newspapers'] = []
         page['pages'] = []
         page['download_pages'] = []
+        page['ocrs'] = []
+        page['start_date']= []
+        page['end_date'] =[]
 
         data = response.body
         soup = BeautifulSoup(data, "html.parser", from_encoding="utf8")
@@ -63,11 +86,15 @@ class WNOSpider(Spider):
             download_page = response.urljoin(title_text.a.get('href'))
             title = title_text.get_text()
             page['site'].append(self.SITE_NAME)
-            page['keyword'].append(self.SEARCH_KEY_WORD)
+            page['keyword'].append(SEARCH_KEY_WORD)
             page['download_pages'].append(download_page)
-            print download_page
             page['titles'].append(title)
-            yield scrapy.Request(url = download_page, headers = self.headers, callback = self.parse_detail, dont_filter=True)
+            ocr = self.parse_detail(download_page)
+            page['ocrs'].append(ocr)
+            page['start_date'].append(START_DATE)
+            page['end_date'].append(END_DATE)
+            # yield scrapy.Request(url = download_page, headers = self.headers, callback = self.parse_detail, dont_filter=True)
+
         
         all_result_summary = soup.find_all('p', class_='result-summary')
         for result_smmary in all_result_summary:
@@ -88,37 +115,42 @@ class WNOSpider(Spider):
             page['types'].append(type_)
             page['words'].append(words)
 
-    def parse_detail(self, response):
-        data = response.body
-        soup = BeautifulSoup(data, "html.parser", from_encoding="utf8")
+        pattern = re.compile('next page')
+        next_page = soup.find('ul', class_= 'pagination')
+        next_page_text = next_page.find(text=pattern).next_siblings
+        next_button = None
+        next_url = None
+        for sibling in next_page_text:
+            if 'li' in repr(sibling):
+                next_button = repr(sibling)
+                break;
+        if next_button != None:
+            try:
+                next_url_info = next_button.split('"')
+                next_url = next_url_info[1]
+                if next_url:
+                    print 'Next page loading ...'
+                    h = HTMLParser.HTMLParser()
+                    next_url = h.unescape(next_url)
+                    yield scrapy.Request(next_url, callback=self.parse, headers=self.headers)
+            except Exception as e:
+                raise 'Error in getting next page!(WNOSpider)'
+
+        yield page
+
+    def parse_detail(self, url):
+        print 'Parsing the detail page now...'
+        html = requests.get(url, headers=self.headers)
+        data = html.text
+        soup = BeautifulSoup(data, "html.parser")
         get_id_detail = soup.find('div', attrs = {'id': 'article-panel-main'})
         id_str = get_id_detail.script.get_text()
-        id_str = id_str.decode("unicode-escape").encode('utf8').split("'")[1]
-        this_ORC = soup.find('div', attrs = {'id' : id_str}).find('span', attrs = {'itemprop' : 'articleBody'})
+        id_str = id_str.split("'")[1]
+        this_OCR = soup.find('div', attrs = {'id' : id_str}).find('span', attrs = {'itemprop' : 'articleBody'}).get_text()
+        return this_OCR
         
         # pass
 
-        # pattern = re.compile('next page')
-        # next_page = soup.find('ul', class_= 'pagination')
-        # next_page_text = next_page.find(text=pattern).next_siblings
-        # next_button = None
-        # next_url = None
-        # for sibling in next_page_text:
-        #     if 'li' in repr(sibling):
-        #         next_button = repr(sibling)
-        #         break;
-        # if next_button != None:
-        #     try:
-        #         next_url_info = next_button.split('"')
-        #         next_url = next_url_info[1]
-        #         if next_url:
-        #             h = HTMLParser.HTMLParser()
-        #             next_url = h.unescape(next_url)
-        #             yield scrapy.Request(next_url, callback=self.parse, headers=self.headers)
-        #     except Exception as e:
-        #         raise 'Error in getting next page!(WNOSpider)'
-
-        # yield page
 
             
 

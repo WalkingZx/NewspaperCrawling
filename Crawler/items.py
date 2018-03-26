@@ -32,3 +32,5 @@ class PageItem(scrapy.Item):
     ocrs = scrapy.Field()
     download_pages = scrapy.Field()
     download_urls = scrapy.Field()
+    start_date = scrapy.Field()
+    end_date = scrapy.Field()
