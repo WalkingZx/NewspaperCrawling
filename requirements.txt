@@ -36,7 +36,7 @@ six==1.11.0
 SQLAlchemy==1.1.4
 TBB==0.1
 Twisted==17.9.0
-urllib3==1.22
+urllib3==1.26.5
 w3lib==1.19.0
 web.py==0.38
 zope.interface==4.4.3
