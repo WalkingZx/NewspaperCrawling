@@ -30,7 +30,7 @@ pyquery==1.4.0
 queuelib==1.4.2
 redis==2.10.5
 requests==2.18.4
-Scrapy==1.5.0
+Scrapy==2.6.2
 service-identity==17.0.0
 six==1.11.0
 SQLAlchemy==1.1.4
